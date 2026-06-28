@@ -165,7 +165,7 @@ body { font-family: 'Georgia', serif; background: var(--surface); color: var(--i
   .quo-paper.is-draft::before { display: none; }
   /* Gambar lebih kecil agar muat 1 halaman */
   .quo-table .room-img { width: 60px; height: 48px; }
-  .quo-table .no-img { width: 60px; height: 48px; font-size: 8px; }
+  .quo-table .no-img { width: 60px; height: 48px; font-size: 8px; display: none; }
   .quo-table th, .quo-table td { padding: 5px 7px; font-size: 11px; }
   .quo-totals { font-size: 11px; }
   .quo-notes { font-size: 10px; }
@@ -240,7 +240,7 @@ body { font-family: 'Georgia', serif; background: var(--surface); color: var(--i
         </div>
         <div class="field">
           <label>Diskon (%)</label>
-          <input type="number" id="discountPct" value="0" min="0" max="100" step="0.5" oninput="updatePreview()">
+          <input type="number" id="discountPct" placeholder="0" min="0" max="100" step="0.5" oninput="updatePreview()">
         </div>
       </div>
 
@@ -256,7 +256,7 @@ body { font-family: 'Georgia', serif; background: var(--surface); color: var(--i
         <div class="section-title">🔧 Biaya Tambahan</div>
         <div class="field">
           <label>On-site Charge (Rp) — isi 0 jika tidak ada</label>
-          <input type="number" id="onSiteCharge" value="0" min="0" step="1000" oninput="updatePreview()">
+          <input type="number" id="onSiteCharge" placeholder="0" min="0" step="1000" oninput="updatePreview()">
         </div>
       </div>
 
@@ -571,7 +571,7 @@ function updatePreview() {
   const clientName = document.getElementById('clientName').value || 'Nama Client';
   const projectName = document.getElementById('projectName').value || 'Nama Project';
   const projectAddress = document.getElementById('projectAddress').value || '';
-  const discountPct = parseFloat(document.getElementById('discountPct').value) || 0;
+  const discountPct = parseFloat(document.getElementById('discountPct').value || '0') || 0;
   const quoDate = document.getElementById('quoDate').value;
   const quoValid = document.getElementById('quoValid').value;
   const quoNum = currentQuoNumber || '—';
@@ -593,11 +593,11 @@ function updatePreview() {
       : `<div class="no-img">No Image</div>`;
     return `<tr>
       <td style="text-align:center">${i+1}</td>
-      <td>${imgCell}</td>
       <td><strong>${r.name || '—'}</strong></td>
+      <td>${imgCell}</td>
+      <td>${r.material || '—'}${r.qty > 1 ? '<br><small style="color:#888">'+r.qty+' pcs</small>' : ''}</td>
       <td style="text-align:right">${r.w ? r.w+'×'+r.l+' m' : '—'}</td>
       <td style="text-align:right">${r.area > 0 ? r.area.toFixed(2)+' m²' : '—'}</td>
-      <td>${r.material || '—'}${r.qty > 1 ? '<br><small style="color:#888">'+r.qty+' pcs</small>' : ''}</td>
       <td style="text-align:right">${r.pricePerM2 > 0 ? fmtRp(r.pricePerM2) : '—'}</td>
       <td style="text-align:right"><strong>${r.subtotal > 0 ? fmtRp(r.subtotal) : '—'}</strong></td>
     </tr>`;
@@ -640,11 +640,11 @@ function updatePreview() {
       <thead>
         <tr>
           <th style="width:30px">No</th>
-          <th style="width:100px">Gambar</th>
           <th>Area / Room</th>
+          <th style="width:100px">Gambar</th>
+          <th>Material</th>
           <th style="width:90px;text-align:right">Dimensi</th>
           <th style="width:70px;text-align:right">Luas</th>
-          <th>Material</th>
           <th style="width:110px;text-align:right">Harga/m²</th>
           <th style="width:120px;text-align:right">Subtotal</th>
         </tr>
@@ -769,7 +769,7 @@ async function submitQuotation() {
   if (!url) { showStatus('Isi Apps Script URL dulu di bagian Konfigurasi', 'err'); return; }
 
   const rooms = collectRooms();
-  const discountPct = parseFloat(document.getElementById('discountPct').value) || 0;
+  const discountPct = parseFloat(document.getElementById('discountPct').value || '0') || 0;
   const totals = calcTotals(rooms, discountPct);
 
   const payload = {
