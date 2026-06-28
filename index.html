@@ -162,6 +162,9 @@ body { font-family: 'Georgia', serif; background: var(--surface); color: var(--i
   .preview-pane h2 { display: none; }
   .quo-paper { box-shadow: none; max-width: 100%; }
   .quo-paper.is-draft::before { position: absolute; }
+  /* Sembunyikan kolom Gambar saat print */
+  .quo-table th:nth-child(2),
+  .quo-table td:nth-child(2) { display: none; }
 }
 </style>
 </head>
@@ -700,8 +703,10 @@ function updatePreview() {
 // BUILD HTML FOR PDF (identik dengan preview)
 // ============================================================
 function buildHtmlForPdf() {
-  const content = document.getElementById('quoContent').innerHTML
-    .replace(/src="data:image\/[^"]+"/g, 'src=""'); // hapus base64 agar tidak terlalu besar
+  // Clone dan hapus kolom Gambar (kolom ke-2) sebelum generate PDF
+  const clone = document.getElementById('quoContent').cloneNode(true);
+  clone.querySelectorAll('.quo-table th:nth-child(2), .quo-table td:nth-child(2)').forEach(el => el.remove());
+  const content = clone.innerHTML.replace(/src="data:image\/[^"]+"/g, 'src=""');
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Georgia,serif;font-size:14px;line-height:1.6;color:#1a1a1a;padding:40px 48px}
