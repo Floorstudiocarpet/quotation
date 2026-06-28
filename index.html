@@ -240,6 +240,15 @@ body { font-family: 'Georgia', serif; background: var(--surface); color: var(--i
         <button class="add-room-btn" onclick="addRoom()">+ Tambah Area / Room</button>
       </div>
 
+      <!-- ON-SITE CHARGE -->
+      <div class="section">
+        <div class="section-title">🔧 Biaya Tambahan</div>
+        <div class="field">
+          <label>On-site Charge (Rp) — isi 0 jika tidak ada</label>
+          <input type="number" id="onSiteCharge" value="0" min="0" step="1000" oninput="updatePreview()">
+        </div>
+      </div>
+
       <!-- CATATAN -->
       <div class="section">
         <div class="section-title">📝 Catatan</div>
@@ -519,7 +528,7 @@ function collectRooms() {
 // ============================================================
 function calcTotals(rooms, discountPct) {
   const subTotal = rooms.reduce((s, r) => s + r.subtotal, 0);
-  const onSiteCharge = subTotal * 0.05;
+  const onSiteCharge = parseFloat(document.getElementById('onSiteCharge')?.value) || 0;
   const afterOnSite = subTotal + onSiteCharge;
   const discountAmt = afterOnSite * (discountPct / 100);
   const afterDiscount = afterOnSite - discountAmt;
@@ -636,7 +645,7 @@ function updatePreview() {
       <div class="quo-totals">
         <table>
           <tr><td>Sub Total</td><td>${fmtRp(totals.subTotal)}</td></tr>
-          <tr><td>On-site Charge (5%)</td><td>${fmtRp(totals.onSiteCharge)}</td></tr>
+          ${totals.onSiteCharge > 0 ? `<tr><td>On-site Charge</td><td>${fmtRp(totals.onSiteCharge)}</td></tr>` : ''}
           ${discountPct > 0 ? `<tr><td>Diskon (${discountPct}%)</td><td style="color:var(--danger)">- ${fmtRp(totals.discountAmt)}</td></tr>` : ''}
           <tr><td>PPN (11%)</td><td>${fmtRp(totals.ppn)}</td></tr>
           <tr><td><strong>Grand Total</strong></td><td><strong>${fmtRp(totals.grandTotal)}</strong></td></tr>
