@@ -412,14 +412,18 @@ function addRoom() {
         <label>Nama Area / Room</label>
         <input type="text" id="rname-${id}" placeholder="cth: Seating Room, Lobby" oninput="updatePreview()">
       </div>
-      <div class="field-row">
+      <div class="field-row-3">
         <div class="field">
-          <label>Lebar (cm)</label>
-          <input type="number" id="rw-${id}" placeholder="310" step="0.1" oninput="updatePreview()">
+          <label>Lebar (m)</label>
+          <input type="number" id="rw-${id}" placeholder="3.1" step="0.01" oninput="updatePreview()">
         </div>
         <div class="field">
-          <label>Panjang (cm)</label>
-          <input type="number" id="rl-${id}" placeholder="420" step="0.1" oninput="updatePreview()">
+          <label>Panjang (m)</label>
+          <input type="number" id="rl-${id}" placeholder="4.2" step="0.01" oninput="updatePreview()">
+        </div>
+        <div class="field">
+          <label>Jumlah (pcs)</label>
+          <input type="number" id="rqty-${id}" value="1" min="1" step="1" oninput="updatePreview()">
         </div>
       </div>
       <div class="field">
@@ -477,11 +481,12 @@ function updateRoomPrice(id) {
   if (!matVal) { priceTag.textContent = 'Pilih material untuk melihat harga'; return; }
   const found = PRICE_LIST.find(p => p.item === matVal);
   if (found) {
-    const area = (w * l) / 10000;
-    const subtotal = area * found.price;
+    const qty = parseInt(document.getElementById('rqty-' + id)?.value) || 1;
+    const area = w * l;
+    const subtotal = area * found.price * qty;
     priceTag.innerHTML = `
       Rp ${found.price.toLocaleString('id-ID')}/m²
-      ${area > 0 ? ' &nbsp;|&nbsp; ' + area.toFixed(2) + ' m² &nbsp;=&nbsp; <strong>Rp ' + Math.round(subtotal).toLocaleString('id-ID') + '</strong>' : ''}
+      ${area > 0 ? ' &nbsp;|&nbsp; ' + area.toFixed(2) + ' m²' + (qty > 1 ? ' × ' + qty + ' pcs' : '') + ' &nbsp;=&nbsp; <strong>Rp ' + Math.round(subtotal).toLocaleString('id-ID') + '</strong>' : ''}
     `;
   }
 }
@@ -497,13 +502,14 @@ function collectRooms() {
     const w = parseFloat((document.getElementById('rw-' + id) || {}).value) || 0;
     const l = parseFloat((document.getElementById('rl-' + id) || {}).value) || 0;
     const matVal = (document.getElementById('rmat-' + id) || {}).value || '';
+    const qty = parseInt((document.getElementById('rqty-' + id) || {}).value) || 1;
     const imgPreview = document.getElementById('rimg-preview-' + id);
     const imgSrc = imgPreview && imgPreview.style.display !== 'none' ? imgPreview.src : null;
     const found = PRICE_LIST.find(p => p.item === matVal);
     const pricePerM2 = found ? found.price : 0;
-    const area = (w * l) / 10000;
-    const subtotal = area * pricePerM2;
-    rooms.push({ id, name, w, l, material: matVal, pricePerM2, area, subtotal, imgSrc });
+    const area = w * l;
+    const subtotal = area * pricePerM2 * qty;
+    rooms.push({ id, name, w, l, qty, material: matVal, pricePerM2, area, subtotal, imgSrc });
   });
   return rooms;
 }
@@ -537,6 +543,10 @@ function fmtDate(str) {
 // UPDATE PREVIEW
 // ============================================================
 function updatePreview() {
+  // Clear error status when user edits the form
+  const statusEl = document.getElementById('statusMsg');
+  if (statusEl && statusEl.classList.contains('err')) hideStatus();
+
   const salesName = document.getElementById('salesName').value || 'Nama Sales';
   const clientName = document.getElementById('clientName').value || 'Nama Client';
   const projectName = document.getElementById('projectName').value || 'Nama Project';
@@ -565,9 +575,9 @@ function updatePreview() {
       <td style="text-align:center">${i+1}</td>
       <td>${imgCell}</td>
       <td><strong>${r.name || '—'}</strong></td>
-      <td style="text-align:right">${r.w ? r.w+'×'+r.l+' cm' : '—'}</td>
+      <td style="text-align:right">${r.w ? r.w+'×'+r.l+' m' : '—'}</td>
       <td style="text-align:right">${r.area > 0 ? r.area.toFixed(2)+' m²' : '—'}</td>
-      <td>${r.material || '—'}</td>
+      <td>${r.material || '—'}${r.qty > 1 ? '<br><small style="color:#888">'+r.qty+' pcs</small>' : ''}</td>
       <td style="text-align:right">${r.pricePerM2 > 0 ? fmtRp(r.pricePerM2) : '—'}</td>
       <td style="text-align:right"><strong>${r.subtotal > 0 ? fmtRp(r.subtotal) : '—'}</strong></td>
     </tr>`;
@@ -635,11 +645,14 @@ function updatePreview() {
     </div>
 
     <div class="quo-notes">
-      <strong>Catatan:</strong>
+      <strong>Catatan / Notes:</strong>
       <ul>
-        <li>Harga belum termasuk biaya instalasi/pemasangan</li>
-        <li>Harga dapat berubah sewaktu-waktu tanpa pemberitahuan sebelumnya</li>
-        <li>Penawaran berlaku hingga ${fmtDate(quoValid)}</li>
+        <li>Price Basis: FOB Jakarta.</li>
+        <li>Production 2 months upon Acc strike off, Confirmed PO and Full Payment.</li>
+        <li>Payment Terms: 50% down payment upon order confirmation, and the remaining 50% prior to delivery.</li>
+        <li>Material Policy: All contracted materials are non-returnable.</li>
+        <li>Validity: This quotation is valid for two (2) weeks from the date of issue.</li>
+        <li>Harga belum termasuk biaya instalasi/pemasangan.</li>
         ${notesExtra}
       </ul>
     </div>
@@ -702,7 +715,7 @@ async function submitQuotation() {
     quoDate: document.getElementById('quoDate').value,
     quoValid: document.getElementById('quoValid').value,
     discountPct,
-    rooms: rooms.map(r => ({ name: r.name, w: r.w, l: r.l, material: r.material, area: r.area, pricePerM2: r.pricePerM2, subtotal: r.subtotal })),
+    rooms: rooms.map(r => ({ name: r.name, w: r.w, l: r.l, qty: r.qty, material: r.material, area: r.area, pricePerM2: r.pricePerM2, subtotal: r.subtotal })),
     totals,
     extraNotes: document.getElementById('extraNotes').value
   };
@@ -720,6 +733,7 @@ async function submitQuotation() {
   try {
     const resp = await fetch(url, {
       method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(payload)
     });
     const data = await resp.json();
