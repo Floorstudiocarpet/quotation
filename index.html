@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Quotation Generator — Floorstudio × SPM</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -893,8 +894,9 @@ function startPolling() {
         stopPolling();
         currentStatus = 'approved';
         showApprovalPanel('approved', currentQuoNumber);
-        showStatus('✅ Quotation sudah diapprove! PDF dikirim ke Telegram.', 'ok');
+        showStatus('✅ Diapprove! Sedang generate PDF...', 'ok');
         updatePreview();
+        await generateAndUploadPdf();
       } else if (status === 'revisi') {
         stopPolling();
         currentStatus = 'revisi';
@@ -905,6 +907,56 @@ function startPolling() {
       }
     } catch (e) { /* silent - will retry next interval */ }
   }, 20000);
+}
+
+async function generateAndUploadPdf() {
+  const url = document.getElementById('appsScriptUrl').value.trim();
+  const clientName = document.getElementById('clientName').value;
+  const paper = document.getElementById('quoPaper');
+
+  // Pastikan watermark hilang sebelum generate
+  paper.classList.remove('is-draft');
+
+  try {
+    const opt = {
+      margin: [8, 8],
+      filename: currentQuoNumber + '.pdf',
+      image: { type: 'jpeg', quality: 0.97 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    const pdfBlob = await html2pdf().set(opt).from(paper).outputPdf('blob');
+
+    // Konversi blob ke base64
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(pdfBlob);
+    });
+
+    // Kirim ke Apps Script
+    showStatus('📤 Mengirim PDF ke Drive & Telegram...', 'loading');
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'uploadPdf',
+        quoNumber: currentQuoNumber,
+        pdfBase64: base64,
+        clientName: clientName
+      })
+    });
+    const result = await resp.json();
+    if (result.success) {
+      showStatus('✅ PDF berhasil dikirim ke Telegram & tersimpan di Drive!', 'ok');
+    } else {
+      showStatus('⚠️ Approved, tapi PDF gagal upload: ' + (result.error || ''), 'err');
+    }
+  } catch (e) {
+    showStatus('⚠️ Approved, tapi PDF gagal generate: ' + e.message, 'err');
+  }
 }
 
 function stopPolling() {
