@@ -531,14 +531,14 @@ function collectRooms() {
 // KALKULASI
 // ============================================================
 function calcTotals(rooms, discountPct) {
-  const subTotal = rooms.reduce((s, r) => s + r.subtotal, 0);
+  const subTotal     = rooms.reduce((s, r) => s + r.subtotal, 0);
   const onSiteCharge = parseFloat(document.getElementById('onSiteCharge')?.value) || 0;
-  const afterOnSite = subTotal + onSiteCharge;
-  const discountAmt = afterOnSite * (discountPct / 100);
-  const afterDiscount = afterOnSite - discountAmt;
-  const ppn = afterDiscount * 0.11;
-  const grandTotal = afterDiscount + ppn;
-  return { subTotal, onSiteCharge, discountAmt, afterOnSite, afterDiscount, ppn, grandTotal };
+  const discountAmt  = subTotal * (discountPct / 100);
+  const afterDiscount = subTotal - discountAmt;
+  const afterOnSite  = afterDiscount + onSiteCharge;
+  const ppn          = afterOnSite * 0.11;
+  const grandTotal   = afterOnSite + ppn;
+  return { subTotal, discountAmt, afterDiscount, onSiteCharge, afterOnSite, ppn, grandTotal };
 }
 
 // ============================================================
@@ -649,8 +649,10 @@ function updatePreview() {
       <div class="quo-totals">
         <table>
           <tr><td>Sub Total</td><td>${fmtRp(totals.subTotal)}</td></tr>
-          ${totals.onSiteCharge > 0 ? `<tr><td>On-site Charge</td><td>${fmtRp(totals.onSiteCharge)}</td></tr>` : ''}
           ${discountPct > 0 ? `<tr><td>Diskon (${discountPct}%)</td><td style="color:var(--danger)">- ${fmtRp(totals.discountAmt)}</td></tr>` : ''}
+          ${discountPct > 0 ? `<tr><td>After Discount</td><td>${fmtRp(totals.afterDiscount)}</td></tr>` : ''}
+          ${totals.onSiteCharge > 0 ? `<tr><td>On-site Charge</td><td>${fmtRp(totals.onSiteCharge)}</td></tr>` : ''}
+          ${(discountPct > 0 || totals.onSiteCharge > 0) ? `<tr><td>Sub Total</td><td>${fmtRp(totals.afterOnSite)}</td></tr>` : ''}
           <tr><td>PPN (11%)</td><td>${fmtRp(totals.ppn)}</td></tr>
           <tr><td><strong>Grand Total</strong></td><td><strong>${fmtRp(totals.grandTotal)}</strong></td></tr>
         </table>
