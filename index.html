@@ -899,9 +899,8 @@ function startPolling() {
         stopPolling();
         currentStatus = 'approved';
         showApprovalPanel('approved', currentQuoNumber);
-        showStatus('✅ Diapprove! Sedang generate PDF...', 'ok');
+        showStatus('✅ Diapprove! PDF sedang dikirim ke Telegram & Drive oleh server.', 'ok');
         updatePreview();
-        await generateAndUploadPdf();
       } else if (status === 'revisi') {
         stopPolling();
         currentStatus = 'revisi';
