@@ -745,6 +745,7 @@ async function submitQuotation() {
       showStatus('✅ Berhasil! Notifikasi dikirim ke Telegram manager', 'ok');
       loadHistory();
       updatePreview();
+      startPolling();
     } else {
       showStatus('❌ Gagal: ' + (data.error || 'Unknown error'), 'err');
       document.getElementById('submitBtn').disabled = false;
@@ -820,6 +821,44 @@ async function checkApprovalStatus() {
     showStatus('❌ Gagal cek status', 'err');
   }
 }
+
+// ============================================================
+// AUTO-POLLING
+// ============================================================
+let pollTimer = null;
+
+function startPolling() {
+  stopPolling();
+  pollTimer = setInterval(async () => {
+    const url = document.getElementById('appsScriptUrl').value.trim();
+    if (!url || !currentQuoNumber) return;
+    try {
+      const resp = await fetch(url + '?action=checkStatus&quoNumber=' + encodeURIComponent(currentQuoNumber));
+      const data = await resp.json();
+      const status = (data.status || '').toLowerCase();
+      if (status === 'approved') {
+        stopPolling();
+        currentStatus = 'approved';
+        showApprovalPanel('approved', currentQuoNumber);
+        showStatus('✅ Quotation sudah diapprove! PDF dikirim ke Telegram.', 'ok');
+        updatePreview();
+      } else if (status === 'revisi') {
+        stopPolling();
+        currentStatus = 'revisi';
+        showApprovalPanel('revisi', currentQuoNumber);
+        showStatus('🔄 Manager meminta revisi. Silakan perbaiki dan submit ulang.', 'err');
+        document.getElementById('submitBtn').disabled = false;
+        updatePreview();
+      }
+    } catch (e) { /* silent - will retry next interval */ }
+  }, 20000);
+}
+
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+window.addEventListener('beforeunload', stopPolling);
 
 // ============================================================
 // HISTORY
